@@ -39,6 +39,7 @@ export class SoundplayerComponent implements OnInit {
     //   })
   }
   ngOnInit() {
+    
     // this.chatService.listenerGetSongDetails()
     this.chatService.currentListener
       .subscribe((data) => {
