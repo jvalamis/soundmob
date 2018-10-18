@@ -100,14 +100,6 @@ export class ListenerTrackComponent implements OnInit {
     }
   }
   resumeCast() {
-<<<<<<< HEAD
-    // this.init();
-    this.paused = false;
-
-      this.player.loadVideoById(this.video, this.resumeAt)
-    console.log(this.paused, "in resume cast")
-=======
->>>>>>> 3b71a9f7e2f4a53863cae2d017a252ae167cf3cf
       this.player.loadVideoById(this.video, this.resumeAt)
       this.paused = false;
   }
