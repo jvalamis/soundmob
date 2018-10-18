@@ -91,10 +91,6 @@ export class TrackComponent implements OnInit {
 
     } else {
       this.player.pauseVideo();
-<<<<<<< HEAD
-
-=======
->>>>>>> 3b71a9f7e2f4a53863cae2d017a252ae167cf3cf
     }
 
   }
