@@ -84,7 +84,6 @@ export class ListenerTrackComponent implements OnInit {
           'onStateChange': this.onPlayerStateChange.bind(this),
           'onError': this.onPlayerError.bind(this),
           'onReady': (e) => {
-            console.log(" made it in youtube init")
             this.chatService.listenerGetSongDetails()
           },
         }
@@ -101,19 +100,22 @@ export class ListenerTrackComponent implements OnInit {
     }
   }
   resumeCast() {
+<<<<<<< HEAD
     // this.init();
     this.paused = false;
 
       this.player.loadVideoById(this.video, this.resumeAt)
     console.log(this.paused, "in resume cast")
+=======
+>>>>>>> 3b71a9f7e2f4a53863cae2d017a252ae167cf3cf
       this.player.loadVideoById(this.video, this.resumeAt)
       this.paused = false;
   }
 
   pauseCast() {
-    console.log(this.paused, "in pause cast")
+
     if (this.paused === false){
-      console.log("inside about to pause")
+
       this.player.pauseVideo();
       this.paused = true;
     }

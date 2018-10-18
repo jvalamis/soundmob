@@ -430,6 +430,7 @@ const googleCallbackURL = '/auth/google/callback';
 
 // session entry
 passport.use(new GoogleStrategy({
+<<<<<<< HEAD
     clientID: ClientID,
     clientSecret: ClientSecret,
     callbackURL: googleCallbackURL,
@@ -469,6 +470,37 @@ passport.use(new GoogleStrategy({
       }
     }).catch(err => console.error(err, 'this should hit'));
   }));
+=======
+  clientID: ClientID,
+  clientSecret: ClientSecret,
+  callbackURL: googleCallbackURL,
+  passReqToCallback: true,
+},
+(req, accessToken, refreshToken, profile, done) => {
+  req.session.accessToken = accessToken;
+  req.session.name = profile.name;
+  req.session.photo = profile.photos[0];
+  const { id } = profile;
+  const { name } = profile;
+  const { givenName } = name;
+  const { familyName } = name;
+  const bio = 'Loray NC';
+  const followercount = 12;
+  const followingcount = 2;
+  getUserById(profile.id).then((user) => {
+    if (user.length === 1) {
+      user[0].name = profile.name;
+      done(null, user[0]);
+    } else {
+      createUser(id, givenName, familyName, bio, followercount, followingcount, true, false)
+        .then((newUser) => {
+          // console.log(newUser);
+          done(null, newUser);
+        }).catch(err => console.error(err));
+    }
+  }).catch(err => console.error(err, 'this should hit'));
+}));
+>>>>>>> 3b71a9f7e2f4a53863cae2d017a252ae167cf3cf
 
 server.listen(port, () => {
   console.log(`running on ${port}`);
