@@ -3,6 +3,7 @@ import { exchangeGoogleCode, googleAuthUrl, refreshAccessToken } from "./auth";
 import { hostPage, landingPage, listenPage } from "./html";
 import { randomCode } from "./html";
 import { Room } from "./room";
+import { loadSecrets, type SecretBinding } from "./secrets";
 import {
   clearSessionCookie,
   createSession,
@@ -17,10 +18,10 @@ export type Env = {
   ASSETS: Fetcher;
   SESSIONS: KVNamespace;
   ROOM: DurableObjectNamespace;
-  YOUTUBE_DATA_API_KEY: string;
-  SESSION_SECRET: string;
-  GOOGLE_OAUTH_CLIENT_ID?: string;
-  GOOGLE_OAUTH_CLIENT_SECRET?: string;
+  YOUTUBE_DATA_API_KEY: string | SecretBinding;
+  SESSION_SECRET: string | SecretBinding;
+  GOOGLE_OAUTH_CLIENT_ID?: string | SecretBinding;
+  GOOGLE_OAUTH_CLIENT_SECRET?: string | SecretBinding;
 };
 
 const app = new Hono<{ Bindings: Env }>();
@@ -33,18 +34,30 @@ function redirectUri(originUrl: string): string {
   return `${originUrl}/auth/google/callback`;
 }
 
-async function requireUser(c: {
-  env: Env;
-  req: { header: (name: string) => string | undefined };
-}): Promise<SessionUser | null> {
+function secretBindings(env: Env) {
+  return {
+    youtubeApiKey: env.YOUTUBE_DATA_API_KEY,
+    sessionSecret: env.SESSION_SECRET,
+    oauthClientId: env.GOOGLE_OAUTH_CLIENT_ID,
+    oauthClientSecret: env.GOOGLE_OAUTH_CLIENT_SECRET,
+  };
+}
+
+async function requireUser(
+  c: {
+    env: Env;
+    req: { header: (name: string) => string | undefined };
+  },
+): Promise<SessionUser | null> {
   const sessionId = readSessionId(c.req.header("Cookie"));
   let user = await getSession(c.env.SESSIONS, sessionId);
   if (!user) return null;
 
+  const secrets = await loadSecrets(secretBindings(c.env));
   user = await refreshAccessToken(
     user,
-    c.env.GOOGLE_OAUTH_CLIENT_ID ?? "",
-    c.env.GOOGLE_OAUTH_CLIENT_SECRET ?? "",
+    secrets.oauthClientId,
+    secrets.oauthClientSecret,
   );
 
   if (sessionId) {
@@ -58,13 +71,12 @@ async function requireUser(c: {
 
 app.get("/health", (c) => c.json({ ok: true, service: "soundmob" }));
 
-app.get("/api/youtube/status", (c) => {
-  const configured = Boolean(c.env.YOUTUBE_DATA_API_KEY?.length);
-  const oauth = Boolean(
-    c.env.GOOGLE_OAUTH_CLIENT_ID?.length &&
-      c.env.GOOGLE_OAUTH_CLIENT_SECRET?.length,
-  );
-  return c.json({ configured, oauth });
+app.get("/api/youtube/status", async (c) => {
+  const secrets = await loadSecrets(secretBindings(c.env));
+  return c.json({
+    configured: Boolean(secrets.youtubeApiKey),
+    oauth: Boolean(secrets.oauthClientId && secrets.oauthClientSecret),
+  });
 });
 
 app.get("/", (c) => c.html(landingPage(origin(c))));
@@ -91,16 +103,17 @@ app.get("/api/me", async (c) => {
   });
 });
 
-app.get("/auth/google", (c) => {
-  if (!c.env.GOOGLE_OAUTH_CLIENT_ID || !c.env.GOOGLE_OAUTH_CLIENT_SECRET) {
+app.get("/auth/google", async (c) => {
+  const secrets = await loadSecrets(secretBindings(c.env));
+  if (!secrets.oauthClientId || !secrets.oauthClientSecret) {
     return c.html(
-      `<!DOCTYPE html><html><body style="font-family:system-ui;background:#0a0a0b;color:#f4f0e8;padding:2rem"><h1>soundmob</h1><p>google oauth is not configured yet.</p><p>add <code>GOOGLE_OAUTH_CLIENT_ID</code> and <code>GOOGLE_OAUTH_CLIENT_SECRET</code> to the ged vault, uncomment the oauth bindings in <code>wrangler.toml</code>, and redeploy.</p><p><a href="/">back</a></p></body></html>`,
+      `<!DOCTYPE html><html><body style="font-family:system-ui;background:#0a0a0b;color:#f4f0e8;padding:2rem"><h1>soundmob</h1><p>google oauth is not configured yet.</p><p><a href="/">back</a></p></body></html>`,
       503,
     );
   }
   const state = crypto.randomUUID();
   const url = googleAuthUrl(
-    c.env.GOOGLE_OAUTH_CLIENT_ID,
+    secrets.oauthClientId,
     redirectUri(origin(c)),
     state,
   );
@@ -111,11 +124,13 @@ app.get("/auth/google/callback", async (c) => {
   const code = c.req.query("code");
   if (!code) return c.text("missing code", 400);
 
+  const secrets = await loadSecrets(secretBindings(c.env));
+
   try {
     const user = await exchangeGoogleCode(
       code,
-      c.env.GOOGLE_OAUTH_CLIENT_ID ?? "",
-      c.env.GOOGLE_OAUTH_CLIENT_SECRET ?? "",
+      secrets.oauthClientId,
+      secrets.oauthClientSecret,
       redirectUri(origin(c)),
     );
     const sessionId = await createSession(c.env.SESSIONS, user);
@@ -140,8 +155,10 @@ app.get("/api/youtube/search", async (c) => {
   const q = c.req.query("q")?.trim();
   if (!q) return c.json({ items: [] });
 
+  const secrets = await loadSecrets(secretBindings(c.env));
+
   try {
-    const items = await searchVideos(c.env.YOUTUBE_DATA_API_KEY, q);
+    const items = await searchVideos(secrets.youtubeApiKey, q);
     return c.json({ items });
   } catch {
     return c.json({ error: "search_failed" }, 502);
@@ -152,6 +169,7 @@ app.post("/api/rooms", async (c) => {
   const user = await requireUser(c);
   if (!user) return c.json({ error: "unauthorized" }, 401);
 
+  const secrets = await loadSecrets(secretBindings(c.env));
   const code = randomCode(6);
   const passcode = randomCode(8);
   const playback: PlaybackState = {
@@ -168,7 +186,7 @@ app.post("/api/rooms", async (c) => {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-Soundmob-Internal": c.env.SESSION_SECRET,
+      "X-Soundmob-Internal": secrets.sessionSecret,
     },
     body: JSON.stringify({
       code,
