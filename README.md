@@ -2,6 +2,8 @@
 
 Synced listening rooms — one host controls the YouTube queue; listeners join with a private code.
 
+**Repo:** https://github.com/jvalamis/soundmob
+
 ## Live
 
 **https://soundmob.jvalamis.workers.dev**
@@ -83,7 +85,7 @@ openssl rand -base64 32
 
 ## Branch policy
 
-`master` is protected — merge via PR only.
+`master` is the default branch — push directly or use PRs as you prefer.
 
 ## History
 
