@@ -85,7 +85,7 @@ openssl rand -base64 32
 
 ## Branch policy
 
-`master` is the default branch — push directly or use PRs as you prefer.
+`master` requires a PR for everyone except **jvalamis** (ruleset bypass — you can push directly).
 
 ## History
 
