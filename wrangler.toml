@@ -28,13 +28,12 @@ binding = "SESSION_SECRET"
 store_id = "cf7f63f9d571485992997ffb96ec5075"
 secret_name = "SESSION_SECRET"
 
-# Uncomment after vault push of GOOGLE_OAUTH_CLIENT_ID + GOOGLE_OAUTH_CLIENT_SECRET:
-# [[secrets_store_secrets]]
-# binding = "GOOGLE_OAUTH_CLIENT_ID"
-# store_id = "cf7f63f9d571485992997ffb96ec5075"
-# secret_name = "GOOGLE_OAUTH_CLIENT_ID"
-#
-# [[secrets_store_secrets]]
-# binding = "GOOGLE_OAUTH_CLIENT_SECRET"
-# store_id = "cf7f63f9d571485992997ffb96ec5075"
-# secret_name = "GOOGLE_OAUTH_CLIENT_SECRET"
+[[secrets_store_secrets]]
+binding = "GOOGLE_OAUTH_CLIENT_ID"
+store_id = "cf7f63f9d571485992997ffb96ec5075"
+secret_name = "GOOGLE_OAUTH_CLIENT_ID"
+
+[[secrets_store_secrets]]
+binding = "GOOGLE_OAUTH_CLIENT_SECRET"
+store_id = "cf7f63f9d571485992997ffb96ec5075"
+secret_name = "GOOGLE_OAUTH_CLIENT_SECRET"
