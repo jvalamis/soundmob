@@ -33,7 +33,7 @@ function gridRows() {
 
 export function layoutDebugRequested() {
   var params = new URLSearchParams(location.search);
-  if (params.get("tether") === "1" || params.get("debug") === "layout") {
+  if (params.get("tether") === "1") {
     try {
       sessionStorage.setItem(STORAGE_KEY, "1");
     } catch {
