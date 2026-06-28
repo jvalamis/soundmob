@@ -12,8 +12,6 @@ Layout debug for hero panels migrates to **Tether** (hosted CF Worker) — **do 
 | soundmob slice | Tether **Phase 4** — `tether-soundmob.js` adapter; delete monolith after parity |
 | Canon | [`ged/docs/LAYOUT-DEBUG.md`](../ged/docs/LAYOUT-DEBUG.md) |
 
-**Until Phase 4 ships:** `?debug=layout` + legacy `layout-debug.js` remain authoritative.
-
-**After Phase 4:** `?tether=1` + `import` from `https://tether.jvalamis.workers.dev/v1/client.js`.
+**After Phase 4:** `?tether=1` (or legacy `?debug=layout`) + `tether-soundmob.js` → `https://tether.macrostrategies.ai/v1/client.js`.
 
 Parent sessions: `git pull` in `ged` before plan ingress; cite `plan_path` on spatial slices.
