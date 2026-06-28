@@ -6,9 +6,9 @@ import {
 
 const setup = document.getElementById("setup");
 const live = document.getElementById("live");
+const hostStatus = document.getElementById("host-status");
 const createBtn = document.getElementById("create-room");
 const roomCode = document.getElementById("room-code");
-const roomPass = document.getElementById("room-pass");
 const joinLink = document.getElementById("join-link");
 const listenerCount = document.getElementById("listener-count");
 const results = document.getElementById("results");
@@ -26,24 +26,40 @@ let room = null;
 let player = null;
 let socket = null;
 let displayName = "host";
+let booted = false;
+
+function setStatus(text, isError = false) {
+  if (!hostStatus) return;
+  hostStatus.textContent = text;
+  hostStatus.classList.toggle("error", isError);
+}
 
 createBtn?.addEventListener("click", async () => {
+  await createRoom();
+});
+
+async function createRoom() {
+  setStatus("creating room…");
   createBtn.disabled = true;
   const res = await fetch("/api/rooms", { method: "POST" });
   if (!res.ok) {
     createBtn.disabled = false;
-    alert("could not create room");
+    const data = await res.json().catch(() => ({}));
+    const err = data.error ?? (res.status === 401 ? "unauthorized" : "room_create_failed");
+    const detail = data.detail ? ` (${data.detail})` : "";
+    setStatus(`could not create room (${err}${detail})`, true);
+    if (createBtn) createBtn.hidden = false;
     return;
   }
   const data = await res.json();
-  startRoom(data);
-});
+  await startRoom(data);
+}
 
-async function startRoom({ code, passcode, joinUrl }) {
+async function startRoom({ code, joinUrl }) {
   setup.hidden = true;
   live.hidden = false;
+  setStatus("");
   roomCode.textContent = code;
-  roomPass.textContent = passcode;
   joinLink.href = joinUrl;
   joinLink.textContent = joinUrl;
 
@@ -60,7 +76,10 @@ async function startRoom({ code, passcode, joinUrl }) {
       if (msg.type === "state") {
         room = msg.room;
         listenerCount.textContent = String(msg.room.listeners);
-        renderQueue();
+        if (msg.room.queue?.length) {
+          queue = msg.room.queue;
+          renderQueue();
+        }
       }
       if (msg.type === "chat") {
         appendChat(chat, msg);
@@ -75,10 +94,21 @@ searchForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const q = searchInput.value.trim();
   if (!q) return;
+  setStatus("searching…");
   const res = await fetch(`/api/youtube/search?q=${encodeURIComponent(q)}`);
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
   results.innerHTML = "";
-  for (const item of data.items ?? []) {
+  if (!res.ok) {
+    const err = data.error ?? (res.status === 401 ? "unauthorized" : "search_failed");
+    setStatus(`search failed (${err}) — try signing in again`, true);
+    return;
+  }
+  setStatus("");
+  if (!data.items?.length) {
+    setStatus("no results — try another query");
+    return;
+  }
+  for (const item of data.items) {
     const row = document.createElement("button");
     row.type = "button";
     row.className = "result";
@@ -117,3 +147,29 @@ chatForm?.addEventListener("submit", (event) => {
   appendChat(chat, { name: displayName, text });
   chatInput.value = "";
 });
+
+async function boot() {
+  if (booted) return;
+  booted = true;
+  setStatus("loading session…");
+
+  const me = await fetch("/api/me");
+  if (!me.ok) {
+    setStatus("session expired — sign in again", true);
+    return;
+  }
+  const profile = await me.json();
+  displayName = profile.name || "host";
+
+  setStatus("checking room…");
+  const active = await fetch("/api/rooms/active");
+  if (active.ok) {
+    const data = await active.json();
+    await startRoom(data);
+    return;
+  }
+
+  await createRoom();
+}
+
+boot();

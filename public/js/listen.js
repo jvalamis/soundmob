@@ -24,7 +24,6 @@ joinForm?.addEventListener("submit", async (event) => {
   joinError.hidden = true;
 
   const code = document.getElementById("code").value.trim().toUpperCase();
-  const passcode = document.getElementById("passcode").value.trim();
   displayName =
     document.getElementById("name").value.trim() || `listener-${code.slice(-3)}`;
 
@@ -33,7 +32,6 @@ joinForm?.addEventListener("submit", async (event) => {
   socket = connectRoom({
     code,
     role: "listener",
-    passcode,
     onMessage: (msg) => {
       if (msg.type === "error") {
         joinError.textContent = msg.message;
@@ -62,7 +60,7 @@ joinForm?.addEventListener("submit", async (event) => {
   });
 
   socket.ws.addEventListener("error", () => {
-    joinError.textContent = "could not connect — check code and passcode";
+    joinError.textContent = "could not connect — check the room code";
     joinError.hidden = false;
   });
 });

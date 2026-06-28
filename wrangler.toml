@@ -1,6 +1,7 @@
 name = "soundmob"
 main = "src/index.ts"
 compatibility_date = "2024-09-23"
+account_id = "fc91bc5e5294c7fb716ee5e5be06380e"
 
 [assets]
 directory = "./public"
@@ -29,11 +30,16 @@ store_id = "cf7f63f9d571485992997ffb96ec5075"
 secret_name = "SESSION_SECRET"
 
 [[secrets_store_secrets]]
-binding = "GOOGLE_OAUTH_CLIENT_ID"
+binding = "SOUNDMOB_OAUTH_CLIENT_ID"
 store_id = "cf7f63f9d571485992997ffb96ec5075"
-secret_name = "GOOGLE_OAUTH_CLIENT_ID"
+secret_name = "SOUNDMOB_OAUTH_CLIENT_ID"
 
 [[secrets_store_secrets]]
-binding = "GOOGLE_OAUTH_CLIENT_SECRET"
+binding = "SOUNDMOB_OAUTH_CLIENT_SECRET"
 store_id = "cf7f63f9d571485992997ffb96ec5075"
-secret_name = "GOOGLE_OAUTH_CLIENT_SECRET"
+secret_name = "SOUNDMOB_OAUTH_CLIENT_SECRET"
+
+[[secrets_store_secrets]]
+binding = "SOUNDMOB_OPERATOR_EMAIL"
+store_id = "cf7f63f9d571485992997ffb96ec5075"
+secret_name = "SOUNDMOB_OPERATOR_EMAIL"

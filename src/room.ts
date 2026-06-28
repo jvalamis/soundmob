@@ -5,14 +5,14 @@ import type {
   WsClientMessage,
   WsServerMessage,
 } from "./types";
+import { readSecret, type SecretBinding } from "./secrets";
 
 export type RoomEnv = {
-  SESSION_SECRET: string;
+  SESSION_SECRET: string | SecretBinding;
 };
 
 type StoredRoom = {
   code: string;
-  passcode: string;
   hostId: string;
   hostName: string;
   playback: PlaybackState;
@@ -59,7 +59,7 @@ export class Room implements DurableObject {
   }
 
   private async handleInit(request: Request): Promise<Response> {
-    if (!this.verifyInternal(request)) {
+    if (!(await this.verifyInternal(request))) {
       return new Response("forbidden", { status: 403 });
     }
 
@@ -84,7 +84,6 @@ export class Room implements DurableObject {
     }
 
     const role = url.searchParams.get("role");
-    const passcode = url.searchParams.get("passcode") ?? "";
     const hostId = request.headers.get("X-Host-Id") ?? "";
 
     if (role === "host") {
@@ -92,9 +91,7 @@ export class Room implements DurableObject {
         return new Response("forbidden", { status: 403 });
       }
     } else if (role === "listener") {
-      if (passcode !== this.room.passcode) {
-        return new Response("forbidden", { status: 403 });
-      }
+      // room code in URL is the join secret
     } else {
       return new Response("bad role", { status: 400 });
     }
@@ -129,9 +126,10 @@ export class Room implements DurableObject {
     this.room = (await this.state.storage.get<StoredRoom>("room")) ?? null;
   }
 
-  private verifyInternal(request: Request): boolean {
+  private async verifyInternal(request: Request): Promise<boolean> {
     const token = request.headers.get("X-Soundmob-Internal");
-    return Boolean(token && token === this.env.SESSION_SECRET);
+    const secret = await readSecret(this.env.SESSION_SECRET);
+    return Boolean(token && secret && token === secret);
   }
 
   private snapshot(): RoomSnapshot | { error: string } {

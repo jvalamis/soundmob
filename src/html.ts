@@ -93,7 +93,36 @@ export function baseStyles(): string {
   `;
 }
 
-export function landingPage(origin: string): string {
+import type { LiveStatus } from "./types";
+
+export type LandingParams = {
+  origin: string;
+  live: LiveStatus;
+  isOperator: boolean;
+};
+
+export function landingPage({ live, isOperator }: LandingParams): string {
+  const hostBtn = isOperator
+    ? `<a class="btn" href="/host">open host session</a>`
+    : "";
+
+  let liveCard = `<div class="panel live-idle"><p class="meta">no session live right now.</p></div>`;
+  if (live.live) {
+    const playing = live.playback.playing ? "playing" : "paused";
+    const title = live.playback.title || "nothing queued yet";
+    const thumb = live.playback.thumbnail
+      ? `<img class="live-thumb" src="${escapeHtml(live.playback.thumbnail)}" alt="" />`
+      : "";
+    liveCard = `<div class="panel live-card stack">
+      <p class="tag">live now · ${escapeHtml(live.hostName)}</p>
+      <div class="live-row">${thumb}<div>
+        <p class="meta">room <code>${escapeHtml(live.code)}</code> · ${live.listeners} listener${live.listeners === 1 ? "" : "s"} · ${playing}</p>
+        <p><strong>${escapeHtml(title)}</strong></p>
+      </div></div>
+      <a class="btn" href="${escapeHtml(live.joinUrl)}">join live</a>
+    </div>`;
+  }
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -110,7 +139,7 @@ export function landingPage(origin: string): string {
       overflow: hidden;
       background: #000;
     }
-    .hero img {
+    .hero img.bg {
       position: absolute; inset: 0; width: 100%; height: 100%;
       object-fit: cover; object-position: center 42%;
     }
@@ -125,6 +154,10 @@ export function landingPage(origin: string): string {
       padding: 1.5rem 1.25rem 2rem;
     }
     .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.25rem; }
+    .live-card { margin-top: 1.25rem; max-width: 28rem; }
+    .live-idle { margin-top: 1.25rem; max-width: 28rem; }
+    .live-row { display: flex; gap: 0.75rem; align-items: flex-start; }
+    .live-thumb { width: 5.5rem; height: 3.1rem; object-fit: cover; border-radius: 0.35rem; }
     .mark {
       position: absolute; right: 1.5rem; bottom: 1.75rem; z-index: 2;
       font-size: 0.7rem; font-weight: 600; letter-spacing: 0.24em;
@@ -134,17 +167,22 @@ export function landingPage(origin: string): string {
 </head>
 <body>
   <main class="hero">
-    <img src="/images/hero-1.jpg" alt="" width="2752" height="1536" decoding="async" />
+    <img class="bg" src="/images/hero-1.jpg" alt="" width="2752" height="1536" decoding="async" />
     <div class="hero-inner wrap">
       <p class="eyebrow">${BRAND}</p>
       <h1>synced listening, host-controlled.</h1>
-      <p class="lead">one dj drives the queue. listeners join with a room code — not a public directory.</p>
+      <p class="lead">the operator session is public on this page. listeners join with the room code — no password.</p>
+      ${liveCard}
       <div class="actions">
-        <a class="btn" href="/auth/google">host with youtube</a>
+        ${hostBtn}
         <a class="btn secondary" href="/listen">join a room</a>
       </div>
     </div>
     <p class="mark">${BRAND}</p>
+    <p class="mark" style="left:1.25rem;right:auto;letter-spacing:0.08em;font-size:0.65rem">
+      <a href="/privacy" style="color:inherit;text-decoration:none;margin-right:0.75rem">privacy</a>
+      <a href="/terms" style="color:inherit;text-decoration:none">terms</a>
+    </p>
   </main>
 </body>
 </html>`;
@@ -169,16 +207,12 @@ export function listenPage(code = ""): string {
   <div class="wrap stack">
     <p class="eyebrow">${BRAND} · listen</p>
     <h1>join the room</h1>
-    <p class="lead">enter the code and passcode from your host. rooms are unlisted.</p>
+    <p class="lead">enter the room code from the landing page or your host.</p>
 
     <form id="join-form" class="panel stack">
       <div>
         <label for="code">room code</label>
-        <input id="code" name="code" value="${escapeHtml(code)}" placeholder="e.g. K7P2M9" autocapitalize="characters" required />
-      </div>
-      <div>
-        <label for="passcode">passcode</label>
-        <input id="passcode" name="passcode" type="password" placeholder="from host" required />
+        <input id="code" name="code" value="${escapeHtml(code)}" placeholder="e.g. K7P2M9" autocapitalize="characters" required autofocus />
       </div>
       <div>
         <label for="name">display name</label>
@@ -226,6 +260,11 @@ export function hostPage(userName: string, userPicture: string): string {
     .result img { width: 4.5rem; height: 2.6rem; object-fit: cover; border-radius: 0.35rem; }
     .share code { font-size: 1.1rem; letter-spacing: 0.14em; }
     #chat { max-height: 10rem; overflow: auto; font-size: 0.9rem; }
+    .meta { font-size: 0.85rem; color: var(--muted); }
+    #host-status.error { color: var(--pink); }
+    .legal { max-width: 40rem; }
+    .legal h2 { font-size: 1.1rem; margin: 1.25rem 0 0.5rem; }
+    .legal p, .legal li { color: var(--muted); margin-bottom: 0.75rem; }
   </style>
   <script src="https://www.youtube.com/iframe_api" async></script>
 </head>
@@ -246,15 +285,14 @@ export function hostPage(userName: string, userPicture: string): string {
     </div>
 
     <section id="setup" class="panel stack">
-      <p class="lead" style="margin:0">start a private room. share the code + passcode with listeners only.</p>
-      <button id="create-room" class="btn" type="button">create room</button>
+      <p id="host-status" class="lead" style="margin:0">starting your room…</p>
+      <button id="create-room" class="btn" type="button" hidden>create room</button>
     </section>
 
     <section id="live" class="stack" hidden>
       <div class="panel share stack">
         <p class="tag">share with listeners</p>
         <p>code: <code id="room-code"></code></p>
-        <p>passcode: <code id="room-pass"></code></p>
         <p class="meta">join link: <a id="join-link" href="/listen"></a></p>
         <p class="meta"><span id="listener-count">0</span> listeners connected</p>
       </div>
@@ -282,6 +320,64 @@ export function hostPage(userName: string, userPicture: string): string {
     </section>
   </div>
   <script src="/js/host.js" type="module"></script>
+</body>
+</html>`;
+}
+
+export function privacyPage(): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${BRAND} · privacy</title>
+  <style>${baseStyles()}</style>
+</head>
+<body>
+  <div class="wrap legal stack">
+    <p class="eyebrow">${BRAND}</p>
+    <h1>privacy policy</h1>
+    <p class="lead">soundmob is a synced listening room service operated by the project owner.</p>
+    <h2>what we collect</h2>
+    <ul>
+      <li><strong>Google sign-in:</strong> email, name, and profile picture to identify hosts.</li>
+      <li><strong>Room data:</strong> room codes, playback state, and chat messages while a room is active.</li>
+      <li><strong>YouTube search:</strong> search queries are sent to YouTube using a server API key; we do not use your Google account to search.</li>
+    </ul>
+    <h2>how we use data</h2>
+    <p>Host identity is used to authorize room creation. Room state is stored in Cloudflare Workers (KV and Durable Objects) for sync between host and listeners. We do not sell personal data.</p>
+    <h2>retention</h2>
+    <p>Host sessions expire after seven days. Room data persists in Durable Objects until the room is replaced or evicted.</p>
+    <h2>contact</h2>
+    <p>Questions: use the operator contact on the Google OAuth consent screen for this app.</p>
+    <p><a href="/">← back</a></p>
+  </div>
+</body>
+</html>`;
+}
+
+export function termsPage(): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${BRAND} · terms</title>
+  <style>${baseStyles()}</style>
+</head>
+<body>
+  <div class="wrap legal stack">
+    <p class="eyebrow">${BRAND}</p>
+    <h1>terms of use</h1>
+    <p class="lead">By using soundmob you agree to these terms.</p>
+    <h2>service</h2>
+    <p>soundmob lets a host control a YouTube playback queue for private listener rooms. The service is provided as-is without warranty.</p>
+    <h2>acceptable use</h2>
+    <p>Do not use soundmob to harass others, stream infringing content, or abuse YouTube or Google APIs. Room codes are shared on the landing page when a session is live.</p>
+    <h2>third parties</h2>
+    <p>YouTube playback and search are subject to YouTube's terms. Google sign-in is subject to Google's policies.</p>
+    <p><a href="/privacy">privacy policy</a> · <a href="/">home</a></p>
+  </div>
 </body>
 </html>`;
 }

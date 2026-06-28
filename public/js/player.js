@@ -121,13 +121,23 @@ export async function createSyncedPlayer(container, opts = {}) {
   };
 }
 
-export function connectRoom({ code, role, passcode, onMessage }) {
+export function connectRoom({ code, role, onMessage }) {
   const proto = location.protocol === "https:" ? "wss" : "ws";
   const params = new URLSearchParams({ role });
-  if (passcode) params.set("passcode", passcode);
   const ws = new WebSocket(
     `${proto}://${location.host}/room/${code}/ws?${params}`,
   );
+
+  /** @type {unknown[]} */
+  const pending = [];
+
+  function flush() {
+    while (ws.readyState === WebSocket.OPEN && pending.length) {
+      ws.send(JSON.stringify(pending.shift()));
+    }
+  }
+
+  ws.addEventListener("open", flush);
 
   ws.addEventListener("message", (event) => {
     try {
@@ -142,6 +152,8 @@ export function connectRoom({ code, role, passcode, onMessage }) {
     send(payload) {
       if (ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify(payload));
+      } else {
+        pending.push(payload);
       }
     },
   };
