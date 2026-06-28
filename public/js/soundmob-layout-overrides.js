@@ -33,22 +33,7 @@ function gridRows() {
 
 export function layoutDebugRequested() {
   var params = new URLSearchParams(location.search);
-  if (params.get("tether") === "1") {
-    try {
-      sessionStorage.setItem(STORAGE_KEY, "1");
-    } catch {
-      /* ignore */
-    }
-    return true;
-  }
-  try {
-    return (
-      sessionStorage.getItem(STORAGE_KEY) === "1" ||
-      sessionStorage.getItem("tether-active") === "1"
-    );
-  } catch {
-    return false;
-  }
+  return params.get("tether") === "1";
 }
 
 export function layoutDebugAuthorized() {
