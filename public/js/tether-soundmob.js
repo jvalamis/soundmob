@@ -114,20 +114,6 @@ export function tryMountLayoutDebug(deps) {
       exportGlobal: EXPORT_GLOBAL,
       layers: SOUNDMOB_LAYERS,
       delegateLayout: true,
-      authorize: async function () {
-        if (
-          location.hostname === "localhost" ||
-          location.hostname === "127.0.0.1"
-        ) {
-          return true;
-        }
-        var r = await fetch(TETHER_ORIGIN + "/api/session", {
-          credentials: "include",
-        });
-        if (!r.ok) return false;
-        var d = await r.json();
-        return Boolean(d.isOperator);
-      },
       onLayerChange: function (layerId) {
         ensureLayerVisible(layerId, deps.nodes);
       },
