@@ -15,3 +15,11 @@ Layout debug for hero panels migrates to **Tether** (hosted CF Worker) — **do 
 **Activation:** `?tether=1` + `tether-soundmob.js` → `https://tether.macrostrategies.ai/v1/client.js`.
 
 Parent sessions: `git pull` in `ged` before plan ingress; cite `plan_path` on spatial slices.
+
+## Git workflow (required for all agents and people)
+1. At the start of a session, run `git fetch --prune`. Work on a fresh branch cut from the latest origin default branch (main/master), never on a stale branch.
+2. One task per branch, named `<agent-or-jan>/<short-task>`. Never commit straight to main/master.
+3. Finish by opening a PR into main/master, and delete the branch once it merges.
+4. Before you end a session, push your branch, so nothing lives only on a local machine.
+5. If the working copy is dirty or behind when you start, say so and ask. Don't overwrite, stash, reset or discard anything.
+6. Never commit secrets.
