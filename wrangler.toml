@@ -2,6 +2,9 @@ name = "soundmob"
 main = "src/index.ts"
 compatibility_date = "2024-09-23"
 account_id = "fc91bc5e5294c7fb716ee5e5be06380e"
+# Live site is served on soundmob.<subdomain>.workers.dev (Google sign-in is registered there): keep it on.
+workers_dev = true
+preview_urls = false
 
 [assets]
 directory = "./public"
